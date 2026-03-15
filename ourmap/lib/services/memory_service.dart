@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/memory.dart';
@@ -13,68 +14,79 @@ class MemoryService {
   final _rng = math.Random();
   SupabaseClient get _client => Supabase.instance.client;
 
-  // ── One-shot fetch ──────────────────────────────────────────────────────────
   Future<List<Memory>> fetchMemories() async {
-    final rows = await _client
-        .from('memories')
-        .select()
-        .order('date', ascending: false);
-    return (rows as List).map((r) => Memory.fromMap(r as Map<String, dynamic>)).toList();
+    try {
+      final rows = await _client
+          .from('memories')
+          .select()
+          .order('date', ascending: false)
+          .limit(500);
+      if (rows == null) return [];
+      return List<Map<String, dynamic>>.from(rows as List)
+          .map(Memory.fromMap)
+          .toList();
+    } catch (e) {
+      debugPrint('fetchMemories error: $e');
+      return [];
+    }
   }
 
-  // ── Real-time stream using polling fallback ─────────────────────────────────
-  // Polls every 3 seconds so new memories appear without hot restart
   Stream<List<Memory>> watchMemories() async* {
-    // Emit immediately
     yield await fetchMemories();
-    // Then poll every 3 seconds
     while (true) {
       await Future.delayed(const Duration(seconds: 3));
       yield await fetchMemories();
     }
   }
 
-  // ── Save a new memory ───────────────────────────────────────────────────────
   Future<Memory> saveMemory({
     required Memory memory,
     required List<File> localImages,
+    List<File> localVideos = const [],
   }) async {
     final canvasX = memory.lng ?? (0.10 + _rng.nextDouble() * 0.80);
     final canvasY = memory.lat ?? (0.12 + _rng.nextDouble() * 0.76);
 
-    final urls = <String>[];
+    // Upload images
+    final imageUrls = <String>[];
     for (final file in localImages) {
       final ext = p.extension(file.path);
-      final fileName = '${memory.id}/${DateTime.now().millisecondsSinceEpoch}$ext';
+      final fileName = '${memory.id}/img_${DateTime.now().millisecondsSinceEpoch}$ext';
       await _client.storage.from('memories').upload(fileName, file);
-      final url = _client.storage.from('memories').getPublicUrl(fileName);
-      urls.add(url);
+      imageUrls.add(_client.storage.from('memories').getPublicUrl(fileName));
     }
 
-    final withImages = memory.copyWith(
-      imagePaths: urls,
+    // Upload videos
+    final videoUrls = <String>[];
+    for (final file in localVideos) {
+      final ext = p.extension(file.path);
+      final fileName = '${memory.id}/vid_${DateTime.now().millisecondsSinceEpoch}$ext';
+      await _client.storage.from('memories').upload(
+        fileName, file,
+        fileOptions: const FileOptions(contentType: 'video/mp4'),
+      );
+      videoUrls.add(_client.storage.from('memories').getPublicUrl(fileName));
+    }
+
+    final withMedia = memory.copyWith(
+      imagePaths: imageUrls,
+      videoPaths: videoUrls,
       lat: canvasY,
       lng: canvasX,
     );
 
-    await _client.from('memories').insert(withImages.toMap());
-    return withImages;
+    await _client.from('memories').insert(withMedia.toMap());
+    return withMedia;
   }
 
-  // ── Update a memory ─────────────────────────────────────────────────────────
   Future<void> updateMemory(Memory memory) async {
-    await _client
-        .from('memories')
-        .update(memory.toMap())
-        .eq('id', memory.id);
+    await _client.from('memories').update(memory.toMap()).eq('id', memory.id);
   }
 
-  // ── Unlock a memory ─────────────────────────────────────────────────────────
   Future<void> unlockMemory(String id) async {
     await _client.from('memories').update({'is_unlocked': true}).eq('id', id);
   }
 
-  // ── Delete a memory ─────────────────────────────────────────────────────────
   Future<void> deleteMemory(String id) async {
     try {
       final files = await _client.storage.from('memories').list(path: id);
