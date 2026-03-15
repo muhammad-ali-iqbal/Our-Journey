@@ -232,7 +232,7 @@ class MenuDrawer extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: const [
                       Text(
-                        'Our Journey',
+                        'Loving You',
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -240,7 +240,7 @@ class MenuDrawer extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Est. 2023',
+                        'Since Dec"22',
                         style: TextStyle(color: Colors.white38, fontSize: 12),
                       ),
                     ],
