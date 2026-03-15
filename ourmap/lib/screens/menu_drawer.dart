@@ -240,7 +240,7 @@ class MenuDrawer extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Since Dec"22',
+                        'Since Dec-ß22',
                         style: TextStyle(color: Colors.white38, fontSize: 12),
                       ),
                     ],
