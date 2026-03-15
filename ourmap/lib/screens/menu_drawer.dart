@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/memory.dart';
@@ -233,21 +232,16 @@ class MenuDrawer extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: const [
                       Text(
-                        'Our Journey',
-                        style: const TextStyle(
+                        'Loving You',
+                        style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          fontFamily: null,
                         ),
                       ),
                       Text(
-                        'Est. 2023',
-                        style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 12,
-                          fontFamily: null,
-                        ),
+                        'Since Dec 2022',
+                        style: TextStyle(color: Colors.white38, fontSize: 12),
                       ),
                     ],
                   ),
@@ -481,32 +475,22 @@ class _MemoryListItem extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 8),
                       Container(
-                        width: 3,
-                        height: 3,
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.gold.withOpacity(0.5),
+                          color: AppColors.gold.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${DateTime.now().difference(memory.date).inDays}d ago',
+                          style: TextStyle(
+                            color: AppColors.gold,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Builder(builder: (_) {
-                        final days = DateTime.now().difference(memory.date).inDays;
-                        final label = days == 0
-                            ? 'Today'
-                            : days == 1
-                                ? 'Yesterday'
-                                : '$days days ago';
-                        return Text(
-                          label,
-                          style: TextStyle(
-                            color: AppColors.gold.withOpacity(0.8),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        );
-                      }),
                     ],
                   ),
                 ],
@@ -525,10 +509,12 @@ class _MemoryListItem extends StatelessWidget {
     if (path.startsWith('http')) {
       return Image.network(path,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(color: AppColors.bgDarkSurface));
+          errorBuilder: (_, __, ___) => Container(
+                color: AppColors.bgDarkSurface,
+              ));
     }
     final file = File(path);
-    if (!kIsWeb && file.existsSync()) {
+    if (file.existsSync()) {
       return Image.file(file, fit: BoxFit.cover);
     }
     return Container(color: AppColors.bgDarkSurface);

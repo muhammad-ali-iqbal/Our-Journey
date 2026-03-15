@@ -13,12 +13,8 @@ dependencies:
   # Supabase
   supabase_flutter: ^2.5.6
 
-  # Image/video picking from gallery
+  # Image picking from gallery
   image_picker: ^1.1.2
-
-  # Video playback
-  video_player: ^2.8.6
-  chewie: ^1.8.1
 
   # Fonts
   google_fonts: ^6.2.1
@@ -49,3 +45,8 @@ flutter:
     - assets/images/
     - assets/App_Sound.mp3
     - assets/background.png
+    - assets/song_1.mp3
+    - assets/song_2.mp3
+    - assets/song_3.mp3
+    - assets/song_4.mp3
+    - assets/song_5.mp3

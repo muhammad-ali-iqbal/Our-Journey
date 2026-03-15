@@ -22,6 +22,19 @@ class _MapScreenState extends State<MapScreen> {
   StreamSubscription<List<Memory>>? _sub;
   final _player = AudioPlayer();
   bool _muted = false;
+  bool _isPlayingNext = false;
+  StreamSubscription? _completeSub;
+
+  // Playlist of songs — plays sequentially then loops
+  static const _playlist = [
+    'App_Sound.mp3',
+    'song_1.mp3',
+    'song_2.mp3',
+    'song_3.mp3',
+    'song_4.mp3',
+    'song_5.mp3',
+  ];
+  int _currentTrack = 0;
 
   @override
   void initState() {
@@ -36,9 +49,23 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _initAudio() async {
-    await _player.setReleaseMode(ReleaseMode.loop);
     await _player.setVolume(0.4);
-    await _player.play(AssetSource('App_Sound.mp3'));
+    // Single subscription — when a song ends, stop then play the next
+    _completeSub = _player.onPlayerComplete.listen((_) => _playNext());
+    // Start with the first track
+    await _player.play(AssetSource(_playlist[_currentTrack]));
+  }
+
+  Future<void> _playNext() async {
+    if (_isPlayingNext || !mounted) return;
+    _isPlayingNext = true;
+    try {
+      await _player.stop();
+      _currentTrack = (_currentTrack + 1) % _playlist.length;
+      await _player.play(AssetSource(_playlist[_currentTrack]));
+    } finally {
+      _isPlayingNext = false;
+    }
   }
 
   void _toggleMute() {
@@ -48,6 +75,7 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   void dispose() {
+    _completeSub?.cancel();
     _player.dispose();
     _sub?.cancel();
     super.dispose();
@@ -180,7 +208,7 @@ class _ConstellationViewState extends State<_ConstellationView>
         child: ClipRect(
           child: Stack(
             children: [
-              // ── Dark background ──────────────────────────────────────
+              // ── Dark background ────────────────────────────────────
               Positioned.fill(
                 child: Container(
                   decoration: const BoxDecoration(
@@ -188,6 +216,31 @@ class _ConstellationViewState extends State<_ConstellationView>
                       center: Alignment.center,
                       radius: 1.2,
                       colors: [Color(0xFF0D1B3E), Color(0xFF060D1F), Color(0xFF020810)],
+                    ),
+                  ),
+                ),
+              ),
+              // ── Centered background image (black bg blended away) ──
+              Positioned.fill(
+                child: Center(
+                  child: SizedBox(
+                    width: 420,
+                    child: ShaderMask(
+                      blendMode: BlendMode.dstIn,
+                      shaderCallback: (bounds) => RadialGradient(
+                        colors: [
+                          Colors.white,
+                          Colors.white,
+                          Colors.white.withOpacity(0.0),
+                        ],
+                        stops: const [0.0, 0.6, 1.0],
+                      ).createShader(bounds),
+                      child: Image.asset(
+                        'assets/background.png',
+                        fit: BoxFit.contain,
+                        colorBlendMode: BlendMode.screen,
+                        color: const Color(0xFF0D1B3E),
+                      ),
                     ),
                   ),
                 ),
@@ -282,7 +335,27 @@ class _StarPainter extends CustomPainter {
     for (final s in stars) {
       final opacity = 0.15 + 0.7 * ((math.sin((t + s.phase) * math.pi) + 1) / 2);
       paint.color = Colors.white.withOpacity(opacity);
-      canvas.drawCircle(Offset(s.x * size.width, s.y * size.height), s.r, paint);
+      final cx = s.x * size.width;
+      final cy = s.y * size.height;
+      final r = s.r;
+      // Draw a 4-pointed star
+      final path = Path();
+      const points = 4;
+      final outerR = r * 1.6;
+      final innerR = r * 0.45;
+      for (int i = 0; i < points * 2; i++) {
+        final angle = (i * math.pi / points) - (math.pi / 2);
+        final radius = i.isEven ? outerR : innerR;
+        final px = cx + radius * math.cos(angle);
+        final py = cy + radius * math.sin(angle);
+        if (i == 0) {
+          path.moveTo(px, py);
+        } else {
+          path.lineTo(px, py);
+        }
+      }
+      path.close();
+      canvas.drawPath(path, paint);
     }
   }
 

@@ -1,10 +1,8 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/memory.dart';
 import '../utils/app_theme.dart';
-import '../widgets/video_player_widget.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class MemoryDetailScreen extends StatefulWidget {
@@ -48,22 +46,27 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> {
                   color: Colors.white.withOpacity(0.85),
                   shape: BoxShape.circle,
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.1), blurRadius: 4)
                   ],
                 ),
-                child: const Icon(Icons.arrow_back, color: AppColors.textDark, size: 20),
+                child: const Icon(Icons.arrow_back,
+                    color: AppColors.textDark, size: 20),
               ),
             ),
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,
                 children: [
+                  // Photo slider
                   hasPhotos
                       ? PageView.builder(
                           controller: _pageCtrl,
                           itemCount: m.imagePaths.length,
-                          onPageChanged: (i) => setState(() => _photoIndex = i),
-                          itemBuilder: (_, i) => _buildPhoto(m.imagePaths[i]),
+                          onPageChanged: (i) =>
+                              setState(() => _photoIndex = i),
+                          itemBuilder: (_, i) =>
+                              _buildPhoto(m.imagePaths[i]),
                         )
                       : Container(
                           decoration: const BoxDecoration(
@@ -74,30 +77,42 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> {
                             ),
                           ),
                           child: const Center(
-                            child: Icon(Icons.favorite, color: Colors.white24, size: 80),
+                            child: Icon(Icons.favorite,
+                                color: Colors.white24, size: 80),
                           ),
                         ),
+
                   // Gradient bottom fade
                   Positioned(
-                    bottom: 0, left: 0, right: 0, height: 120,
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 120,
                     child: Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, AppColors.bgLight],
+                          colors: [
+                            Colors.transparent,
+                            AppColors.bgLight,
+                          ],
                         ),
                       ),
                     ),
                   ),
+
                   // Photo dots
                   if (m.imagePaths.length > 1)
                     Positioned(
-                      bottom: 12, left: 0, right: 0,
+                      bottom: 12,
+                      left: 0,
+                      right: 0,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(m.imagePaths.length, (i) =>
-                          GestureDetector(
+                        children: List.generate(
+                          m.imagePaths.length,
+                          (i) => GestureDetector(
                             onTap: () => _pageCtrl.animateToPage(i,
                                 duration: const Duration(milliseconds: 300),
                                 curve: Curves.easeInOut),
@@ -157,11 +172,16 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> {
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        Icon(Icons.location_on, size: 15, color: AppColors.textMid),
+                        Icon(Icons.location_on,
+                            size: 15,
+                            color: AppColors.textMid),
                         const SizedBox(width: 4),
                         Text(
                           m.locationName,
-                          style: TextStyle(color: AppColors.textMid, fontSize: 14),
+                          style: TextStyle(
+                            color: AppColors.textMid,
+                            fontSize: 14,
+                          ),
                         ),
                       ],
                     ),
@@ -182,7 +202,7 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> {
                     ),
                   ),
 
-                  // ── Photo gallery strip ──────────────────────────────
+                  // Additional photos gallery
                   if (m.imagePaths.length > 1) ...[
                     const SizedBox(height: 32),
                     const Text(
@@ -200,13 +220,19 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> {
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: m.imagePaths.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 10),
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(width: 10),
                         itemBuilder: (_, i) => GestureDetector(
                           onTap: () {
                             _pageCtrl.animateToPage(i,
                                 duration: const Duration(milliseconds: 400),
                                 curve: Curves.easeInOut);
                             setState(() => _photoIndex = i);
+                            // Scroll to top
+                            Scrollable.ensureVisible(
+                              context,
+                              duration: const Duration(milliseconds: 400),
+                            );
                           },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
@@ -230,25 +256,6 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> {
                       ),
                     ),
                   ],
-
-                  // ── Videos ──────────────────────────────────────────
-                  if (m.videoPaths.isNotEmpty) ...[
-                    const SizedBox(height: 32),
-                    const Text(
-                      'VIDEOS',
-                      style: TextStyle(
-                        fontSize: 11,
-                        letterSpacing: 4,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textMid,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ...m.videoPaths.map((url) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: VideoPlayerWidget(url: url),
-                    )),
-                  ],
                 ],
               ),
             ),
@@ -261,10 +268,12 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> {
   Widget _buildPhoto(String path) {
     if (path.startsWith('http')) {
       return Image.network(path, fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(color: const Color(0xFF3D5A6B)));
+          errorBuilder: (_, __, ___) => Container(
+                color: const Color(0xFF3D5A6B),
+              ));
     }
     final file = File(path);
-    if (!kIsWeb && file.existsSync()) return Image.file(file, fit: BoxFit.cover);
+    if (file.existsSync()) return Image.file(file, fit: BoxFit.cover);
     return Container(color: const Color(0xFF3D5A6B));
   }
 }

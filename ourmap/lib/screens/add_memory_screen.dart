@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
@@ -28,7 +27,6 @@ class _AddMemoryScreenState extends State<AddMemoryScreen> {
   DateTime _selectedDate = DateTime.now();
   int _correctOptionIndex = 0;
   final List<File> _selectedImages = [];
-  final List<File> _selectedVideos = [];
   bool _isSaving = false;
 
   final _picker = ImagePicker();
@@ -90,27 +88,18 @@ class _AddMemoryScreenState extends State<AddMemoryScreen> {
     try {
       final results = await _picker.pickMultiImage(imageQuality: 85);
       if (results.isNotEmpty) {
-        setState(() => _selectedImages.addAll(results.map((x) => File(x.path))));
+        setState(() {
+          _selectedImages.addAll(results.map((x) => File(x.path)));
+        });
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not pick image: $e')));
-    }
-  }
-
-  Future<void> _pickVideo() async {
-    try {
-      final result = await _picker.pickVideo(
-        source: ImageSource.gallery,
-        maxDuration: const Duration(minutes: 10),
-      );
-      if (result != null) {
-        setState(() => _selectedVideos.add(File(result.path)));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not pick image: $e')),
+        );
       }
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not pick video: $e')));
     }
   }
-
 
   Future<void> _save() async {
     final title = _titleCtrl.text.trim();
@@ -178,7 +167,6 @@ class _AddMemoryScreenState extends State<AddMemoryScreen> {
         final saved = await MemoryService().saveMemory(
           memory: memory,
           localImages: _selectedImages,
-          localVideos: _selectedVideos,
         );
 
         if (!mounted) return;
@@ -457,18 +445,6 @@ class _AddMemoryScreenState extends State<AddMemoryScreen> {
                         onAdd: _pickImage,
                         onRemove: (i) =>
                             setState(() => _selectedImages.removeAt(i)),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // ── Video Keepsakes ───────────────────────────────
-                      _FieldLabel('VIDEO KEEPSAKES'),
-                      const SizedBox(height: 8),
-                      _VideoGrid(
-                        videos: _selectedVideos,
-                        onAdd: _pickVideo,
-                        onRemove: (i) =>
-                            setState(() => _selectedVideos.removeAt(i)),
                       ),
                     ],
                   ),
@@ -829,7 +805,7 @@ class _PhotoGrid extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: kIsWeb ? Container(color: Colors.grey.shade800, child: const Icon(Icons.image, color: Colors.white38)) : Image.file(images[i], fit: BoxFit.cover),
+              child: Image.file(images[i], fit: BoxFit.cover),
             ),
             Positioned(
               top: 6,
@@ -856,123 +832,6 @@ class _PhotoGrid extends StatelessWidget {
           ],
         );
       },
-    );
-  }
-}
-
-// ── Video Grid (mirrors _PhotoGrid) ───────────────────────────────────────────
-class _VideoGrid extends StatelessWidget {
-  final List<File> videos;
-  final VoidCallback onAdd;
-  final void Function(int) onRemove;
-
-  const _VideoGrid({
-    required this.videos,
-    required this.onAdd,
-    required this.onRemove,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Video list
-        ...videos.asMap().entries.map((e) => Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.primary.withOpacity(0.15)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 44, height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.videocam_rounded,
-                      color: AppColors.primary, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Video ${e.key + 1}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                      Text(
-                        e.value.path.split('/').last,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textMid,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => onRemove(e.key),
-                  child: Container(
-                    width: 28, height: 28,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.red.shade50,
-                      border: Border.all(color: Colors.red.shade200),
-                    ),
-                    child: Icon(Icons.close, size: 14, color: Colors.red.shade400),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        )),
-
-        // Add video button
-        GestureDetector(
-          onTap: onAdd,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.primary.withOpacity(0.25),
-                width: 1.5,
-              ),
-              color: AppColors.primary.withOpacity(0.04),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.video_library_outlined,
-                    color: AppColors.primary, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  videos.isEmpty ? 'ADD VIDEO' : 'ADD ANOTHER VIDEO',
-                  style: TextStyle(
-                    color: AppColors.primary.withOpacity(0.8),
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
